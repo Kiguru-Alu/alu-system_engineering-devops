@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# Commands to install Nginx on Web-Sever-01
+# This script installs Nginx, allows HTTP traffic, and configures the default page.
 
-# Updating Packages before making Installations
-sudo apt-get update
-sudo apt-get -y install nginx
+# Update package list
+sudo apt-get update -y
 
-# Configuring the Uncomplicated Firewall (UFW) to allow incoming traffic for the Nginx HTTP service
+# Install Nginx
+sudo apt-get install nginx -y
+
+# Allow Nginx through the firewall
 sudo ufw allow 'Nginx HTTP'
 
-# Creating an index.html page
+# Ensure Nginx is running
+sudo service nginx start
+
+# Create the expected content
 echo "Holberton School" | sudo tee /var/www/html/index.html
 
-# Testing Nginx configurations for Syntax errors
-sudo nginx -t
-
-# Restarting Nginx
-sudo service nginx start
+# Reload Nginx to apply changes
+sudo service nginx reload
