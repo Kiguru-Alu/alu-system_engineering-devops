@@ -1,84 +1,51 @@
 #!/usr/bin/env bash
-# Idempotent script to configure Nginx with a custom header and custom pages
+# Configures Nginx with a custom header and required pages
 
-# --- 1. CHECK & INSTALL NGINX IF NOT INSTALLED ---
+# 1. Install Nginx if not installed
 if ! command -v nginx >/dev/null 2>&1; then
-    echo "Nginx not found. Installing..."
     apt-get update -y
     apt-get install -y nginx
-else
-    echo "Nginx already installed."
 fi
 
-# --- 2. ENSURE /var/www/html EXISTS ---
-if [ ! -d /var/www/html ]; then
-    echo "Creating /var/www/html directory..."
-    mkdir -p /var/www/html
-else
-    echo "/var/www/html already exists."
-fi
+# 2. Ensure web root exists
+mkdir -p /var/www/html
 
-# --- 3. CREATE index.html IF NOT EXISTS ---
-if [ ! -f /var/www/html/index.html ]; then
-    echo "Creating index.html..."
-    echo "Holberton School for the win!" > /var/www/html/index.html
-else
-    echo "index.html already exists."
-fi
+# 3. index.html
+echo "Holberton School for the win!" > /var/www/html/index.html
 
-# --- 4. CREATE 404.html IF NOT EXISTS ---
-if [ ! -f /var/www/html/404.html ]; then
-    echo "Creating 404.html..."
-    echo "Ceci n'est pas une page" > /var/www/html/404.html
-else
-    echo "404.html already exists."
-fi
+# 4. custom 404 page
+echo "Ceci n'est pas une page" > /var/www/html/404.html
 
-# --- 5. CONFIGURE NGINX ONLY IF NOT ALREADY CONFIGURED ---
-NGINX_CONFIG="/etc/nginx/sites-available/default"
-
+# 5. Configure Nginx default server
 HOSTNAME=$(hostname)
 
-# Check if the X-Served-By header already exists in config
-if ! grep -q "X-Served-By" "$NGINX_CONFIG"; then
-    echo "Configuring Nginx server block..."
+cat <<EOF > /etc/nginx/sites-available/default
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
-    printf %s "server {
-        listen 80 default_server;
-        listen [::]:80 default_server;
-        root /var/www/html;
-        index index.html index.htm;
-        server_name _;
-        add_header X-Served-By $HOSTNAME always;
+    root /var/www/html;
+    index index.html index.htm;
+    server_name _;
 
-        location / {
-            try_files \$uri \$uri/ =404;
-        }
+    add_header X-Served-By $HOSTNAME always;
 
-        location /redirect_me {
-            return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
-        }
-
-        error_page 404 /404.html;
-
-        location = /404.html {
-            root /var/www/html;
-            internal;
-        }
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
     }
-    " > "$NGINX_CONFIG"
-else
-    echo "Nginx config already contains X-Served-By — skipping overwrite."
-fi
 
-# --- 6. RESTART NGINX IF RUNNING ---
-if systemctl status nginx >/dev/null 2>&1; then
-    echo "Restarting Nginx..."
-    systemctl restart nginx
-else
-    echo "Nginx not running — starting service..."
-    systemctl start nginx
-fi
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
 
-echo "Configuration complete!"
+    error_page 404 /404.html;
+
+    location = /404.html {
+        internal;
+    }
+}
+EOF
+
+# 6. Restart Nginx
+systemctl restart nginx
 
