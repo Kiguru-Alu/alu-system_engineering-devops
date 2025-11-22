@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Checks if Vim is installed, and installs it if missing
+
+set -e
+
+# Check if vim exists
+if command -v vim >/dev/null 2>&1; then
+    echo "Vim is already installed ✔"
+else
+    echo "Vim is not installed. Installing..."
+    sudo apt-get update -y
+    sudo apt-get install -y vim
+    echo "Vim installation complete ✔"
+fi
+
