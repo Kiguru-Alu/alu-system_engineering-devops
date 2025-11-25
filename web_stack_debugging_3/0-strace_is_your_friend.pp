@@ -1,13 +1,18 @@
 # Fix the WordPress installation causing Apache to return 500 errors
 
-exec { 'fix-wordpress':
-  command => '/bin/sed -i "s/;$/;/" /var/www/html/wp-config.php',
-  onlyif  => '/bin/grep -q "DB_PASSWORD" /var/www/html/wp-config.php',
+package { 'apache2':
+  ensure => installed,
+}
+
+exec { 'restore-wp-settings':
+  command => 'cp /var/www/html/wp-settings.php.save /var/www/html/wp-settings.php',
+  refreshonly => false,
 }
 
 service { 'apache2':
-  ensure    => running,
-  enable    => true,
-  subscribe => Exec['fix-wordpress'],
+  ensure  => running,
+  enable  => true,
+  require => Package['apache2'],
+  subscribe => Exec['restore-wp-settings'],
 }
 
