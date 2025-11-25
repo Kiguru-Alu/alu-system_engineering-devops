@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
-# Installs and configures HAProxy load balancer with roundrobin distribution
+# Configure HAProxy load balancer for ALX
 
+# Install haproxy
 apt-get update -y
 apt-get install -y haproxy
 
-# Enable HAProxy service in init system
-sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy || echo "ENABLED=1" >> /etc/default/haproxy
+# Enable HAProxy via init script
+if ! grep -q "ENABLED=1" /etc/default/haproxy; then
+    sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy 2>/dev/null \
+    || echo "ENABLED=1" >> /etc/default/haproxy
+fi
 
-# Configure HAProxy to balance between web-01 and web-02
-cat <<EOF | sudo tee /etc/haproxy/haproxy.cfg > /dev/null
-global 
+# Configure HAProxy with roundrobin load balancing
+cat <<EOF > /etc/haproxy/haproxy.cfg
+global
     log /dev/log local0
     log /dev/log local1 notice
-    chroot /var/lib/haproxy
-    stats timeout 30s
     user haproxy
     group haproxy
     daemon
@@ -26,13 +28,6 @@ defaults
     timeout connect 5000
     timeout client  50000
     timeout server  50000
-    errorfile 400 /etc/haproxy/errors/400.http
-    errorfile 403 /etc/haproxy/errors/403.http
-    errorfile 408 /etc/haproxy/errors/408.http
-    errorfile 500 /etc/haproxy/errors/500.http
-    errorfile 502 /etc/haproxy/errors/502.http
-    errorfile 503 /etc/haproxy/errors/503.http
-    errorfile 504 /etc/haproxy/errors/504.http
 
 frontend http_front
     bind *:80
@@ -40,10 +35,10 @@ frontend http_front
 
 backend http_back
     balance roundrobin
-    server 6845-web-01 54.172.16.102:80 check
-    server 6845-web-02 18.233.224.205:80 check
-    http-response set-header X-Served-By %[srv_name]
+    server web-01 <WEB01_IP>:80 check
+    server web-02 <WEB02_IP>:80 check
 EOF
 
-# Restart HAProxy to apply configuration
-sudo systemctl restart haproxy
+# Restart haproxy
+systemctl restart haproxy
+
